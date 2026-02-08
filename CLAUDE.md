@@ -57,7 +57,14 @@ go vet ./...              # Lint
 go test ./...             # Test all
 go test -bench=. ./...    # Benchmarks
 go test -cover ./...      # Coverage
+go build -o bin/ ./examples/...  # Build examples to bin/
 ```
+
+## Build Rules
+
+- **All `go build` output MUST go to `bin/`** — use `go build -o bin/ ./...` or `go build -o bin/<name> ./examples/<name>`
+- The `bin/` directory is gitignored — never commit compiled binaries
+- Never run `go build` without `-o bin/` to avoid leaving binaries in the repo root
 
 ## Conventions
 

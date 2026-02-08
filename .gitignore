@@ -8,11 +8,8 @@
 *.so
 *.dylib
 
-# Compiled example binaries (extensionless)
-/console
-/routing
-/routing-api
-/routing-zeroalloc
+# Build output
+/bin/
 
 # Test binary, built with `go test -c`
 *.test
