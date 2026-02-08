@@ -1,9 +1,8 @@
 package deepmerge
 
 import (
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMergeableSlice_IsZero(t *testing.T) {
@@ -31,7 +30,9 @@ func TestMergeableSlice_IsZero(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, tt.slice.IsZero())
+			if got := tt.slice.IsZero(); got != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, got)
+			}
 		})
 	}
 }
@@ -41,21 +42,29 @@ func TestMergeableSlice_Items(t *testing.T) {
 	slice := NewSlice(items)
 
 	result := slice.Items()
-	assert.Equal(t, items, result)
+	if !reflect.DeepEqual(items, result) {
+		t.Errorf("expected %v, got %v", items, result)
+	}
 }
 
 func TestMergeableSlice_WithStrategy(t *testing.T) {
 	slice := NewSlice([]string{"a"})
 
 	// Default strategy should be SliceOverride
-	assert.Equal(t, SliceOverride, slice.strategy)
+	if slice.strategy != SliceOverride {
+		t.Errorf("expected %v, got %v", SliceOverride, slice.strategy)
+	}
 
 	// WithStrategy should return new instance with updated strategy
 	updated := slice.WithStrategy(SliceAppend)
-	assert.Equal(t, SliceAppend, updated.strategy)
+	if updated.strategy != SliceAppend {
+		t.Errorf("expected %v, got %v", SliceAppend, updated.strategy)
+	}
 
 	// Original should be unchanged
-	assert.Equal(t, SliceOverride, slice.strategy)
+	if slice.strategy != SliceOverride {
+		t.Errorf("expected %v, got %v", SliceOverride, slice.strategy)
+	}
 }
 
 func TestMergeableSlice_Merge_Override(t *testing.T) {
@@ -103,7 +112,9 @@ func TestMergeableSlice_Merge_Override(t *testing.T) {
 			override := NewSlice(tt.override).WithStrategy(SliceOverride)
 
 			result := base.Merge(override)
-			assert.Equal(t, tt.expected, result.Items())
+			if !reflect.DeepEqual(tt.expected, result.Items()) {
+				t.Errorf("expected %v, got %v", tt.expected, result.Items())
+			}
 		})
 	}
 }
@@ -159,7 +170,9 @@ func TestMergeableSlice_Merge_Append(t *testing.T) {
 			override := NewSlice(tt.override).WithStrategy(SliceAppend)
 
 			result := base.Merge(override)
-			assert.Equal(t, tt.expected, result.Items())
+			if !reflect.DeepEqual(tt.expected, result.Items()) {
+				t.Errorf("expected %v, got %v", tt.expected, result.Items())
+			}
 		})
 	}
 }
@@ -233,7 +246,9 @@ func TestMergeableSlice_Merge_Union(t *testing.T) {
 			override := NewSlice(tt.override).WithStrategy(SliceUnion)
 
 			result := base.Merge(override)
-			assert.Equal(t, tt.expected, result.Items())
+			if !reflect.DeepEqual(tt.expected, result.Items()) {
+				t.Errorf("expected %v, got %v", tt.expected, result.Items())
+			}
 		})
 	}
 }
@@ -244,7 +259,9 @@ func TestMergeableSlice_DifferentTypes(t *testing.T) {
 		override := NewSlice([]int{3, 4}).WithStrategy(SliceAppend)
 
 		result := base.Merge(override)
-		assert.Equal(t, []int{1, 2, 3, 4}, result.Items())
+		if !reflect.DeepEqual([]int{1, 2, 3, 4}, result.Items()) {
+			t.Errorf("expected %v, got %v", []int{1, 2, 3, 4}, result.Items())
+		}
 	})
 
 	t.Run("int union", func(t *testing.T) {
@@ -252,7 +269,9 @@ func TestMergeableSlice_DifferentTypes(t *testing.T) {
 		override := NewSlice([]int{2, 3}).WithStrategy(SliceUnion)
 
 		result := base.Merge(override)
-		assert.Equal(t, []int{1, 2, 3}, result.Items())
+		if !reflect.DeepEqual([]int{1, 2, 3}, result.Items()) {
+			t.Errorf("expected %v, got %v", []int{1, 2, 3}, result.Items())
+		}
 	})
 }
 
@@ -290,7 +309,9 @@ func TestMergeSlices_ConvenienceFunction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := MergeSlices(tt.strategy, tt.base, tt.override)
-			assert.Equal(t, tt.expected, result)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
 		})
 	}
 }
@@ -307,7 +328,7 @@ func BenchmarkMergeableSlice_Append(b *testing.B) {
 	overrideSlice := NewSlice(override).WithStrategy(SliceAppend)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = baseSlice.Merge(overrideSlice)
 	}
 }
@@ -324,7 +345,7 @@ func BenchmarkMergeableSlice_Union(b *testing.B) {
 	overrideSlice := NewSlice(override).WithStrategy(SliceUnion)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = baseSlice.Merge(overrideSlice)
 	}
 }

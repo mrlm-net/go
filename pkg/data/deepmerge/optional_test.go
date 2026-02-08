@@ -1,16 +1,48 @@
 package deepmerge
 
 import (
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
+
+func assertEqual(t *testing.T, expected, actual any, msgAndArgs ...string) {
+	t.Helper()
+	if !reflect.DeepEqual(expected, actual) {
+		msg := ""
+		if len(msgAndArgs) > 0 {
+			msg = ": " + msgAndArgs[0]
+		}
+		t.Errorf("expected %v, got %v%s", expected, actual, msg)
+	}
+}
+
+func assertTrue(t *testing.T, val bool, msgAndArgs ...string) {
+	t.Helper()
+	if !val {
+		msg := "expected true, got false"
+		if len(msgAndArgs) > 0 {
+			msg += ": " + msgAndArgs[0]
+		}
+		t.Error(msg)
+	}
+}
+
+func assertFalse(t *testing.T, val bool, msgAndArgs ...string) {
+	t.Helper()
+	if val {
+		msg := "expected false, got true"
+		if len(msgAndArgs) > 0 {
+			msg += ": " + msgAndArgs[0]
+		}
+		t.Error(msg)
+	}
+}
 
 func TestSome(t *testing.T) {
 	tests := []struct {
 		name     string
-		value    interface{}
-		expected interface{}
+		value    any
+		expected any
 	}{
 		{"string value", "hello", "hello"},
 		{"int value", 42, 42},
@@ -26,20 +58,20 @@ func TestSome(t *testing.T) {
 			switch v := tt.value.(type) {
 			case string:
 				opt := Some(v)
-				assert.True(t, opt.IsSet(), "Some() should create set Optional")
-				assert.Equal(t, v, opt.Value())
+				assertTrue(t, opt.IsSet(), "Some() should create set Optional")
+				assertEqual(t, v, opt.Value())
 			case int:
 				opt := Some(v)
-				assert.True(t, opt.IsSet(), "Some() should create set Optional")
-				assert.Equal(t, v, opt.Value())
+				assertTrue(t, opt.IsSet(), "Some() should create set Optional")
+				assertEqual(t, v, opt.Value())
 			case bool:
 				opt := Some(v)
-				assert.True(t, opt.IsSet(), "Some() should create set Optional")
-				assert.Equal(t, v, opt.Value())
+				assertTrue(t, opt.IsSet(), "Some() should create set Optional")
+				assertEqual(t, v, opt.Value())
 			case float64:
 				opt := Some(v)
-				assert.True(t, opt.IsSet(), "Some() should create set Optional")
-				assert.Equal(t, v, opt.Value())
+				assertTrue(t, opt.IsSet(), "Some() should create set Optional")
+				assertEqual(t, v, opt.Value())
 			}
 		})
 	}
@@ -54,32 +86,32 @@ func TestNone(t *testing.T) {
 			name: "string none",
 			testFunc: func(t *testing.T) {
 				opt := None[string]()
-				assert.False(t, opt.IsSet(), "None() should create unset Optional")
-				assert.Equal(t, "", opt.Value(), "None() should return zero value")
+				assertFalse(t, opt.IsSet(), "None() should create unset Optional")
+				assertEqual(t, "", opt.Value(), "None() should return zero value")
 			},
 		},
 		{
 			name: "int none",
 			testFunc: func(t *testing.T) {
 				opt := None[int]()
-				assert.False(t, opt.IsSet(), "None() should create unset Optional")
-				assert.Equal(t, 0, opt.Value(), "None() should return zero value")
+				assertFalse(t, opt.IsSet(), "None() should create unset Optional")
+				assertEqual(t, 0, opt.Value(), "None() should return zero value")
 			},
 		},
 		{
 			name: "bool none",
 			testFunc: func(t *testing.T) {
 				opt := None[bool]()
-				assert.False(t, opt.IsSet(), "None() should create unset Optional")
-				assert.Equal(t, false, opt.Value(), "None() should return zero value")
+				assertFalse(t, opt.IsSet(), "None() should create unset Optional")
+				assertEqual(t, false, opt.Value(), "None() should return zero value")
 			},
 		},
 		{
 			name: "float64 none",
 			testFunc: func(t *testing.T) {
 				opt := None[float64]()
-				assert.False(t, opt.IsSet(), "None() should create unset Optional")
-				assert.Equal(t, 0.0, opt.Value(), "None() should return zero value")
+				assertFalse(t, opt.IsSet(), "None() should create unset Optional")
+				assertEqual(t, 0.0, opt.Value(), "None() should return zero value")
 			},
 		},
 	}
@@ -98,36 +130,36 @@ func TestOptional_Value(t *testing.T) {
 			name: "set string returns value",
 			testFunc: func(t *testing.T) {
 				opt := Some("test")
-				assert.Equal(t, "test", opt.Value())
+				assertEqual(t, "test", opt.Value())
 			},
 		},
 		{
 			name: "unset string returns zero",
 			testFunc: func(t *testing.T) {
 				opt := None[string]()
-				assert.Equal(t, "", opt.Value())
+				assertEqual(t, "", opt.Value())
 			},
 		},
 		{
 			name: "set int returns value",
 			testFunc: func(t *testing.T) {
 				opt := Some(42)
-				assert.Equal(t, 42, opt.Value())
+				assertEqual(t, 42, opt.Value())
 			},
 		},
 		{
 			name: "unset int returns zero",
 			testFunc: func(t *testing.T) {
 				opt := None[int]()
-				assert.Equal(t, 0, opt.Value())
+				assertEqual(t, 0, opt.Value())
 			},
 		},
 		{
 			name: "explicit zero is returned",
 			testFunc: func(t *testing.T) {
 				opt := Some(0)
-				assert.True(t, opt.IsSet(), "Some(0) should be set")
-				assert.Equal(t, 0, opt.Value())
+				assertTrue(t, opt.IsSet(), "Some(0) should be set")
+				assertEqual(t, 0, opt.Value())
 			},
 		},
 	}
@@ -146,35 +178,35 @@ func TestOptional_ValueOr(t *testing.T) {
 			name: "set value returns value",
 			testFunc: func(t *testing.T) {
 				opt := Some("actual")
-				assert.Equal(t, "actual", opt.ValueOr("default"))
+				assertEqual(t, "actual", opt.ValueOr("default"))
 			},
 		},
 		{
 			name: "unset value returns default",
 			testFunc: func(t *testing.T) {
 				opt := None[string]()
-				assert.Equal(t, "default", opt.ValueOr("default"))
+				assertEqual(t, "default", opt.ValueOr("default"))
 			},
 		},
 		{
 			name: "set zero value returns zero not default",
 			testFunc: func(t *testing.T) {
 				opt := Some(0)
-				assert.Equal(t, 0, opt.ValueOr(999))
+				assertEqual(t, 0, opt.ValueOr(999))
 			},
 		},
 		{
 			name: "set empty string returns empty not default",
 			testFunc: func(t *testing.T) {
 				opt := Some("")
-				assert.Equal(t, "", opt.ValueOr("default"))
+				assertEqual(t, "", opt.ValueOr("default"))
 			},
 		},
 		{
 			name: "set false returns false not default",
 			testFunc: func(t *testing.T) {
 				opt := Some(false)
-				assert.Equal(t, false, opt.ValueOr(true))
+				assertEqual(t, false, opt.ValueOr(true))
 			},
 		},
 	}
@@ -193,42 +225,42 @@ func TestOptional_IsSet(t *testing.T) {
 			name: "Some creates set optional",
 			testFunc: func(t *testing.T) {
 				opt := Some("value")
-				assert.True(t, opt.IsSet())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 		{
 			name: "None creates unset optional",
 			testFunc: func(t *testing.T) {
 				opt := None[string]()
-				assert.False(t, opt.IsSet())
+				assertFalse(t, opt.IsSet())
 			},
 		},
 		{
 			name: "zero value struct is unset",
 			testFunc: func(t *testing.T) {
 				var opt Optional[int]
-				assert.False(t, opt.IsSet())
+				assertFalse(t, opt.IsSet())
 			},
 		},
 		{
 			name: "Some with zero value is set",
 			testFunc: func(t *testing.T) {
 				opt := Some(0)
-				assert.True(t, opt.IsSet())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 		{
 			name: "Some with empty string is set",
 			testFunc: func(t *testing.T) {
 				opt := Some("")
-				assert.True(t, opt.IsSet())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 		{
 			name: "Some with false is set",
 			testFunc: func(t *testing.T) {
 				opt := Some(false)
-				assert.True(t, opt.IsSet())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 	}
@@ -247,30 +279,30 @@ func TestOptional_IsZero(t *testing.T) {
 			name: "IsZero is inverse of IsSet for Some",
 			testFunc: func(t *testing.T) {
 				opt := Some("value")
-				assert.False(t, opt.IsZero())
-				assert.True(t, opt.IsSet())
+				assertFalse(t, opt.IsZero())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 		{
 			name: "IsZero is inverse of IsSet for None",
 			testFunc: func(t *testing.T) {
 				opt := None[string]()
-				assert.True(t, opt.IsZero())
-				assert.False(t, opt.IsSet())
+				assertTrue(t, opt.IsZero())
+				assertFalse(t, opt.IsSet())
 			},
 		},
 		{
 			name: "IsZero for zero value struct",
 			testFunc: func(t *testing.T) {
 				var opt Optional[int]
-				assert.True(t, opt.IsZero())
+				assertTrue(t, opt.IsZero())
 			},
 		},
 		{
 			name: "IsZero for Some(0) is false",
 			testFunc: func(t *testing.T) {
 				opt := Some(0)
-				assert.False(t, opt.IsZero(), "Some(0) is explicitly set, not zero")
+				assertFalse(t, opt.IsZero(), "Some(0) is explicitly set, not zero")
 			},
 		},
 	}
@@ -291,8 +323,8 @@ func TestOptional_Merge(t *testing.T) {
 				base := Some("base")
 				override := Some("override")
 				result := base.Merge(override)
-				assert.Equal(t, "override", result.Value())
-				assert.True(t, result.IsSet())
+				assertEqual(t, "override", result.Value())
+				assertTrue(t, result.IsSet())
 			},
 		},
 		{
@@ -301,8 +333,8 @@ func TestOptional_Merge(t *testing.T) {
 				base := Some("base")
 				override := None[string]()
 				result := base.Merge(override)
-				assert.Equal(t, "base", result.Value())
-				assert.True(t, result.IsSet())
+				assertEqual(t, "base", result.Value())
+				assertTrue(t, result.IsSet())
 			},
 		},
 		{
@@ -311,8 +343,8 @@ func TestOptional_Merge(t *testing.T) {
 				base := None[string]()
 				override := Some("override")
 				result := base.Merge(override)
-				assert.Equal(t, "override", result.Value())
-				assert.True(t, result.IsSet())
+				assertEqual(t, "override", result.Value())
+				assertTrue(t, result.IsSet())
 			},
 		},
 		{
@@ -321,8 +353,8 @@ func TestOptional_Merge(t *testing.T) {
 				base := None[string]()
 				override := None[string]()
 				result := base.Merge(override)
-				assert.False(t, result.IsSet())
-				assert.Equal(t, "", result.Value())
+				assertFalse(t, result.IsSet())
+				assertEqual(t, "", result.Value())
 			},
 		},
 		{
@@ -331,7 +363,7 @@ func TestOptional_Merge(t *testing.T) {
 				base := Some(10)
 				override := Some(20)
 				result := base.Merge(override)
-				assert.Equal(t, 20, result.Value())
+				assertEqual(t, 20, result.Value())
 			},
 		},
 		{
@@ -340,8 +372,8 @@ func TestOptional_Merge(t *testing.T) {
 				base := Some(true)
 				override := Some(false)
 				result := base.Merge(override)
-				assert.Equal(t, false, result.Value())
-				assert.True(t, result.IsSet())
+				assertEqual(t, false, result.Value())
+				assertTrue(t, result.IsSet())
 			},
 		},
 		{
@@ -350,7 +382,7 @@ func TestOptional_Merge(t *testing.T) {
 				base := Some(1.5)
 				override := Some(2.5)
 				result := base.Merge(override)
-				assert.Equal(t, 2.5, result.Value())
+				assertEqual(t, 2.5, result.Value())
 			},
 		},
 		{
@@ -359,8 +391,8 @@ func TestOptional_Merge(t *testing.T) {
 				base := Some(42)
 				override := Some(0)
 				result := base.Merge(override)
-				assert.Equal(t, 0, result.Value())
-				assert.True(t, result.IsSet(), "Explicit zero should be set")
+				assertEqual(t, 0, result.Value())
+				assertTrue(t, result.IsSet(), "Explicit zero should be set")
 			},
 		},
 		{
@@ -369,8 +401,8 @@ func TestOptional_Merge(t *testing.T) {
 				base := Some(0)
 				override := None[int]()
 				result := base.Merge(override)
-				assert.Equal(t, 0, result.Value())
-				assert.True(t, result.IsSet(), "Explicit zero should be preserved")
+				assertEqual(t, 0, result.Value())
+				assertTrue(t, result.IsSet(), "Explicit zero should be preserved")
 			},
 		},
 	}
@@ -385,9 +417,9 @@ func TestOptional_ZeroValueUseful(t *testing.T) {
 		var zero Optional[string]
 		none := None[string]()
 
-		assert.Equal(t, none.IsSet(), zero.IsSet())
-		assert.Equal(t, none.Value(), zero.Value())
-		assert.Equal(t, none.IsZero(), zero.IsZero())
+		assertEqual(t, none.IsSet(), zero.IsSet())
+		assertEqual(t, none.Value(), zero.Value())
+		assertEqual(t, none.IsZero(), zero.IsZero())
 	})
 }
 
@@ -400,32 +432,32 @@ func TestOptional_DifferentTypes(t *testing.T) {
 			name: "string type",
 			testFunc: func(t *testing.T) {
 				opt := Some("hello")
-				assert.Equal(t, "hello", opt.Value())
-				assert.True(t, opt.IsSet())
+				assertEqual(t, "hello", opt.Value())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 		{
 			name: "int type",
 			testFunc: func(t *testing.T) {
 				opt := Some(123)
-				assert.Equal(t, 123, opt.Value())
-				assert.True(t, opt.IsSet())
+				assertEqual(t, 123, opt.Value())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 		{
 			name: "bool type",
 			testFunc: func(t *testing.T) {
 				opt := Some(true)
-				assert.Equal(t, true, opt.Value())
-				assert.True(t, opt.IsSet())
+				assertEqual(t, true, opt.Value())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 		{
 			name: "float64 type",
 			testFunc: func(t *testing.T) {
 				opt := Some(99.99)
-				assert.Equal(t, 99.99, opt.Value())
-				assert.True(t, opt.IsSet())
+				assertEqual(t, 99.99, opt.Value())
+				assertTrue(t, opt.IsSet())
 			},
 		},
 	}

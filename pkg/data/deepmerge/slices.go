@@ -1,5 +1,14 @@
 package deepmerge
 
+import "sync"
+
+// dedupMapPool provides reusable maps for SliceUnion deduplication to reduce allocations.
+var dedupMapPool = sync.Pool{
+	New: func() any {
+		return make(map[any]struct{}, 16)
+	},
+}
+
 // MergeableSlice wraps a slice with merge capabilities.
 type MergeableSlice[T comparable] struct {
 	items    []T
@@ -75,28 +84,46 @@ func (s MergeableSlice[T]) mergeAppend(override []T) []T {
 
 // mergeUnion creates a slice with unique values using O(n) map-based deduplication.
 // Preserves order: base items first, then new override items.
+// Uses sync.Pool to reduce allocations for the deduplication map.
 func (s MergeableSlice[T]) mergeUnion(override []T) []T {
 	// If base is nil, return override
 	if s.items == nil {
 		return override
 	}
 
-	// Use map for O(n) deduplication
-	seen := make(map[T]struct{}, len(s.items)+len(override))
-	result := make([]T, 0, len(s.items)+len(override))
+	totalHint := len(s.items) + len(override)
 
-	// Add base items first (preserves order)
+	// Get map from pool for deduplication (type-erased to work with generics).
+	// Use defensive type assertion in case pool is contaminated.
+	seenRaw, ok := dedupMapPool.Get().(map[any]struct{})
+	if !ok || totalHint > 16 {
+		// Pool returned wrong type, or pooled map capacity (16) is too small.
+		// Allocate a right-sized map instead.
+		seenRaw = make(map[any]struct{}, totalHint)
+	}
+	defer func() {
+		clear(seenRaw)
+		dedupMapPool.Put(seenRaw)
+	}()
+
+	result := make([]T, 0, totalHint)
+
+	// Add base items first (preserves order).
+	// Note: the any(item) boxing is unavoidable with generics since the pooled map
+	// must use map[any]struct{} to be shared across all type instantiations.
 	for _, item := range s.items {
-		if _, exists := seen[item]; !exists {
-			seen[item] = struct{}{}
+		key := any(item)
+		if _, exists := seenRaw[key]; !exists {
+			seenRaw[key] = struct{}{}
 			result = append(result, item)
 		}
 	}
 
 	// Add override items that aren't duplicates
 	for _, item := range override {
-		if _, exists := seen[item]; !exists {
-			seen[item] = struct{}{}
+		key := any(item)
+		if _, exists := seenRaw[key]; !exists {
+			seenRaw[key] = struct{}{}
 			result = append(result, item)
 		}
 	}

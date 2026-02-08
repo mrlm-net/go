@@ -1,9 +1,8 @@
 package deepmerge
 
 import (
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMergeableMap_IsZero(t *testing.T) {
@@ -31,7 +30,9 @@ func TestMergeableMap_IsZero(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, tt.mapVal.IsZero())
+			if got := tt.mapVal.IsZero(); got != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, got)
+			}
 		})
 	}
 }
@@ -41,21 +42,29 @@ func TestMergeableMap_Items(t *testing.T) {
 	mapVal := NewMap(items)
 
 	result := mapVal.Items()
-	assert.Equal(t, items, result)
+	if !reflect.DeepEqual(items, result) {
+		t.Errorf("expected %v, got %v", items, result)
+	}
 }
 
 func TestMergeableMap_WithStrategy(t *testing.T) {
 	mapVal := NewMap(map[string]string{"a": "1"})
 
 	// Default strategy should be MapOverride
-	assert.Equal(t, MapOverride, mapVal.strategy)
+	if mapVal.strategy != MapOverride {
+		t.Errorf("expected %v, got %v", MapOverride, mapVal.strategy)
+	}
 
 	// WithStrategy should return new instance with updated strategy
 	updated := mapVal.WithStrategy(MapMerge)
-	assert.Equal(t, MapMerge, updated.strategy)
+	if updated.strategy != MapMerge {
+		t.Errorf("expected %v, got %v", MapMerge, updated.strategy)
+	}
 
 	// Original should be unchanged
-	assert.Equal(t, MapOverride, mapVal.strategy)
+	if mapVal.strategy != MapOverride {
+		t.Errorf("expected %v, got %v", MapOverride, mapVal.strategy)
+	}
 }
 
 func TestMergeableMap_Merge_Override(t *testing.T) {
@@ -103,7 +112,9 @@ func TestMergeableMap_Merge_Override(t *testing.T) {
 			override := NewMap(tt.override).WithStrategy(MapOverride)
 
 			result := base.Merge(override)
-			assert.Equal(t, tt.expected, result.Items())
+			if !reflect.DeepEqual(tt.expected, result.Items()) {
+				t.Errorf("expected %v, got %v", tt.expected, result.Items())
+			}
 		})
 	}
 }
@@ -165,7 +176,9 @@ func TestMergeableMap_Merge_Merge(t *testing.T) {
 			override := NewMap(tt.override).WithStrategy(MapMerge)
 
 			result := base.Merge(override)
-			assert.Equal(t, tt.expected, result.Items())
+			if !reflect.DeepEqual(tt.expected, result.Items()) {
+				t.Errorf("expected %v, got %v", tt.expected, result.Items())
+			}
 		})
 	}
 }
@@ -177,7 +190,9 @@ func TestMergeableMap_DifferentTypes(t *testing.T) {
 
 		result := base.Merge(override)
 		expected := map[int]int{1: 10, 2: 99, 3: 30}
-		assert.Equal(t, expected, result.Items())
+		if !reflect.DeepEqual(expected, result.Items()) {
+			t.Errorf("expected %v, got %v", expected, result.Items())
+		}
 	})
 
 	t.Run("string keys with int values", func(t *testing.T) {
@@ -186,7 +201,9 @@ func TestMergeableMap_DifferentTypes(t *testing.T) {
 
 		result := base.Merge(override)
 		expected := map[string]int{"a": 1, "b": 99, "c": 3}
-		assert.Equal(t, expected, result.Items())
+		if !reflect.DeepEqual(expected, result.Items()) {
+			t.Errorf("expected %v, got %v", expected, result.Items())
+		}
 	})
 
 	t.Run("struct values", func(t *testing.T) {
@@ -208,7 +225,9 @@ func TestMergeableMap_DifferentTypes(t *testing.T) {
 			"user1": {Name: "Alice", Age: 30},
 			"user2": {Name: "Bob", Age: 25},
 		}
-		assert.Equal(t, expected, result.Items())
+		if !reflect.DeepEqual(expected, result.Items()) {
+			t.Errorf("expected %v, got %v", expected, result.Items())
+		}
 	})
 }
 
@@ -239,7 +258,9 @@ func TestMergeMaps_ConvenienceFunction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := MergeMaps(tt.strategy, tt.base, tt.override)
-			assert.Equal(t, tt.expected, result)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
 		})
 	}
 }
@@ -247,7 +268,7 @@ func TestMergeMaps_ConvenienceFunction(t *testing.T) {
 func BenchmarkMergeableMap_Merge(b *testing.B) {
 	base := make(map[string]string, 1000)
 	override := make(map[string]string, 1000)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		key := string(rune('a' + (i % 26)))
 		base[key] = "value"
 		override[key] = "value"
@@ -257,7 +278,7 @@ func BenchmarkMergeableMap_Merge(b *testing.B) {
 	overrideMap := NewMap(override).WithStrategy(MapMerge)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = baseMap.Merge(overrideMap)
 	}
 }
@@ -265,7 +286,7 @@ func BenchmarkMergeableMap_Merge(b *testing.B) {
 func BenchmarkMergeableMap_Override(b *testing.B) {
 	base := make(map[string]string, 1000)
 	override := make(map[string]string, 1000)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		key := string(rune('a' + (i % 26)))
 		base[key] = "value"
 		override[key] = "value"
@@ -275,7 +296,7 @@ func BenchmarkMergeableMap_Override(b *testing.B) {
 	overrideMap := NewMap(override).WithStrategy(MapOverride)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = baseMap.Merge(overrideMap)
 	}
 }
